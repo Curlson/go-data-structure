@@ -15,23 +15,27 @@ type List struct {
 	length int
 }
 
+func (this *List) Length() int {
+	return this.length
+}
+
 func (this *List) IsEmpty() bool {
-	return this.length == 0
+	if this.headNode == nil {
+		return true
+	}
+	return false
 }
 
 // 创建: 头插法
 func (this *List) Add(data Object) (node *Node) {
 	node = &Node{Data: data}
-	head := this.headNode
-	if head == nil {
-		this.headNode = node
+	if this.headNode == nil {
 		this.tailNode = node
-	} else {
-		node.Next = head	// 首几点，编程头茬 node 的 Next
-		node.Pre = head.Pre
-		head.Pre = node	// 当前 node 称为 原 head 的 Pre 
-		this.headNode = node
-	}
+	} 
+	node.Next, node.Pre= this.headNode, this.headNode.Pre	// 首几点，编程头茬 node 的 Next
+	this.headNode.Pre = node	// 当前 node 称为 原 head 的 Pre 
+	this.headNode = node
+
 	this.length++
 	return
 }
@@ -39,75 +43,61 @@ func (this *List) Add(data Object) (node *Node) {
 // 创建：尾插法
 func (this *List) Append(data Object) (node *Node) {
 	// 创建节点
-	node = &Node(Data: data)
-	head := this.headNode
+	node = &Node{Data: data}
+	tail := this.tailNode
+
 	// 空链表
-	if head == nil {
-		this.headNode, this.tailNode = node, node
+	if this.IsEmpty() {
+		this.headNode = node
 	} else {
-		tail := this.tailNode
-
 		// 更新指针
-		node.Pre = tail
-		node.Next = tail.Next
+		node.Pre, node.Next = tail, tail.Next
 		tail.Next = node
-
-		// 更新尾节点
-		this.tailNode = node
 	}
+
+	this.tailNode = node
 	this.length++
-	return
-}
 
-func Abs(data int) int {
-	if data < 0 {
-		return -data
-	}
-	return data
+	return
 }
 
 // 删除：指定 index
 func (this *List) RmoveAt(index int) bool {
-
 	// 超出长度：默认成功
-	if this.length < Abs(index) + 1 {
-		return true
+	if this.length < Abs(index) || index == 0 {
+		fmt.Println("index 超出范围 或者 不能为 0")
+		return false
 	}
 	
-	if index >= 0 {
-		cur := this.headNode
-		var count int
+	var (
+		count, pos int
+		cur *Node = this.headNode
+	)
 
-		for count < index {
-			cur = cur.Next
-			count ++
-		}
-		if cur.Pre != nil {
-			cur.Pre.Next = curNext
-		}
-		if cur.Next != nil {
-			cur.Next.Pre = curPre
-		}
+	if index > 0 {
+		pos = index - 1
 	} else {
-		cur := this.tailNode
+		pos = this.length + index
+	}
 
-		count := 1
-		for count < Abs(index) {
-			cur = cur.Pre
-			count ++
-		}
-		if cur.Pre != nil {
-			cur.Pre.Next = cur.Next
-		}
-		if cur.Next != nil {
-			cur.Next.Pre = cur.Pre
-		}
-	} 
-	this.length++
+	for cur != nil &&  count < pos {
+		cur = cur.Next
+		count ++
+	}
+	
+	if cur.Pre != nil {
+		cur.Pre.Next = cur.Next
+	}
+	if cur.Next != nil {
+		cur.Next.Pre = cur.Pre
+	}
+
+	this.length--
+	return true
 }
 
 // 删除： 值 value
-func (this *List) Rmove(data Object) {
+func (this *List) Rmove(data Object) bool {
 	cur := this.headNode
 	for i:=0; i<this.length; i++ {
 		if cur.Data == data {
@@ -122,6 +112,7 @@ func (this *List) Rmove(data Object) {
 			this.length--
 		}
 	}
+	return true
 }
 
 // 插入
@@ -129,57 +120,45 @@ func (this *List) Insert(index int, data Object) bool {
 
 	if this.IsEmpty() {
 		this.Append(data)
-		return
-	}
-
-	node := &Node{Data: data}
-	// 头插和尾插
-	if index >= 0 {
-		count := 0
-		cur := this.headNode
-
-		for cur && count < index {
-			cur = cur.Next
-			count ++
-		}
-
-		// TODO 关注一下
-		if !cur || count > index {
-			return false
-		}
-
-		node.Next = cur
-		node.Pre = cur.Pre
-		cur.Pre = node
-		if cur.Pre != nil {
-			cur.Pre.Next = node
-		}
 		this.length++
-	} else {
-		count := 1
-		cur := this.tailNode
-		
-		for cur && count < Abs(index) {
-			cur = cur.Pre
-			count ++
-		}
-
-		if !cur || count > Abs(index) {
-			return false
-		}
-
-		node.Next = cur.Next
-		node.Pre = cur
-		// 更新旧节点
-		if cur.Next {
-			cur.Next.Pre = node
-		}
-		cur.Next = node
-
+		return true
 	}
 
+	var (
+		count, pos int
+		cur *Node = this.headNode
+		node *Node = &Node{Data: data}
+	)
 
+	
+	if index > 0 {
+		pos = index - 1
+	} else {
+		pos = this.length + index
+	}
 
+	// 头插和尾插
+	for cur != nil && count < pos {
+		cur = cur.Next
+		count ++
+	}
+
+	// TODO 关注一下
+	if cur == nil {
+		return false
+	}
+
+	node.Next = cur
+	node.Pre = cur.Pre
+	if cur.Pre != nil {
+		cur.Pre.Next = node
+	} else {
+		this.headNode = node
+	}
+	// 只能放最后
+	cur.Pre = node
+	this.length++
+	return true
 }
 
 // 取值: 指定 index
@@ -200,12 +179,13 @@ func (this *List) GetNodeAt(index int) Object {
 
 // 查找: 指定 value 是否存在
 func (this *List) Contain(data Object) bool {
-	cur := this.headNode
-	for i:=0; i<this.length; i++ {
-		
+
+	var cur *Node = this.headNode
+
+	for cur != nil{
 		if cur.Data == data {
 			return true
-		}
+		}	
 		cur = cur.Next
 	}
 	return false
@@ -226,25 +206,9 @@ func (this *List) ShowList() {
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+func Abs(data int) int {
+	if data < 0 {
+		data = -data
+	}
+	return data
+}
